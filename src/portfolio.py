@@ -87,3 +87,74 @@ def resampled_mean_variance(returns_window, n_draws=500, delta=DELTA, seed=0):
         all_weights[b] = solve(mu_b, sigma_b)
 
     return pd.Series(all_weights.mean(axis=0), index=returns_window.columns)
+
+
+MARKET_WEIGHTS = pd.Series({
+    "SPY": 0.25, "EFA": 0.15, "EEM": 0.07, "TLT": 0.08, "IEF": 0.12,
+    "LQD": 0.12, "HYG": 0.05, "GLD": 0.06, "VNQ": 0.05, "DBC": 0.05,
+})  # assumed approximate global multi-asset market portfolio
+
+TAU = 0.05  # uncertainty scaling on the prior
+
+
+def implied_returns(sigma, w_mkt, delta=DELTA):
+    """Equilibrium returns implied by market weights: Pi = delta * Sigma * w_mkt."""
+    return delta * np.asarray(sigma) @ np.asarray(w_mkt)
+
+
+def black_litterman_returns(sigma, w_mkt, P=None, Q=None, delta=DELTA, tau=TAU):
+    """Black-Litterman posterior expected returns.
+
+    With no views (P is None), this is just the equilibrium prior.
+    View uncertainty Omega follows He & Litterman: diag(P (tau Sigma) P').
+    """
+    sigma = np.asarray(sigma, dtype=float)
+    pi = implied_returns(sigma, w_mkt, delta)
+    if P is None:
+        return pi
+
+    P = np.atleast_2d(np.asarray(P, dtype=float))
+    Q = np.atleast_1d(np.asarray(Q, dtype=float))
+    tau_sigma = tau * sigma
+    omega = np.diag(np.diag(P @ tau_sigma @ P.T))
+
+    inv_tau_sigma = np.linalg.inv(tau_sigma)
+    inv_omega = np.linalg.inv(omega)
+    A = inv_tau_sigma + P.T @ inv_omega @ P
+    b = inv_tau_sigma @ pi + P.T @ inv_omega @ Q
+    return np.linalg.solve(A, b)
+
+
+def black_litterman_no_views(returns_window, delta=DELTA):
+    """Black-Litterman with no views: optimize on the equilibrium prior."""
+    sigma = LedoitWolf().fit(returns_window.values).covariance_
+    w_mkt = MARKET_WEIGHTS[returns_window.columns].values
+    mu = black_litterman_returns(sigma, w_mkt, delta=delta)
+    w = mean_variance_weights(mu, sigma, delta)
+    return pd.Series(w, index=returns_window.columns)
+
+
+MOMENTUM_LOOKBACK = 12   # months used to rank assets
+MOMENTUM_N = 3           # assets in each of the top and bottom groups
+VIEW_SPREAD = 0.03 / 12  # view: top group beats bottom group by 3% per year (monthly units)
+
+
+def momentum_view(returns_window, lookback=MOMENTUM_LOOKBACK, n=MOMENTUM_N, spread=VIEW_SPREAD):
+    """Relative view: the top-n trailing performers outperform the bottom-n by `spread`."""
+    trailing = (1 + returns_window.iloc[-lookback:]).prod() - 1
+    ranked = trailing.sort_values()
+    bottom, top = list(ranked.index[:n]), list(ranked.index[-n:])
+    P = pd.Series(0.0, index=returns_window.columns)
+    P[top] = 1 / n
+    P[bottom] = -1 / n
+    return P.values, np.array([spread]), top, bottom
+
+
+def black_litterman_momentum(returns_window, delta=DELTA, tau=TAU):
+    """Black-Litterman with a systematic 12-month momentum view."""
+    sigma = LedoitWolf().fit(returns_window.values).covariance_
+    w_mkt = MARKET_WEIGHTS[returns_window.columns].values
+    P, Q, _, _ = momentum_view(returns_window)
+    mu = black_litterman_returns(sigma, w_mkt, P=P, Q=Q, delta=delta, tau=tau)
+    w = mean_variance_weights(mu, sigma, delta)
+    return pd.Series(w, index=returns_window.columns)
