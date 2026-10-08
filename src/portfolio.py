@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import cvxpy as cp
+from sklearn.covariance import LedoitWolf
 
 DELTA = 2.5  # risk aversion, standard value from the Black-Litterman literature
 
@@ -32,3 +33,19 @@ def equal_weight(returns_window):
     """1/N benchmark: same weight in every asset."""
     n = returns_window.shape[1]
     return pd.Series(np.full(n, 1 / n), index=returns_window.columns)
+
+
+def naive_mean_variance(returns_window, delta=DELTA):
+    """Mean-variance using raw sample estimates of mu and Sigma."""
+    mu = returns_window.mean().values
+    sigma = returns_window.cov().values
+    w = mean_variance_weights(mu, sigma, delta)
+    return pd.Series(w, index=returns_window.columns)
+
+
+def ledoit_wolf_mean_variance(returns_window, delta=DELTA):
+    """Mean-variance with sample mu but Ledoit-Wolf shrunk Sigma."""
+    mu = returns_window.mean().values
+    sigma = LedoitWolf().fit(returns_window.values).covariance_
+    w = mean_variance_weights(mu, sigma, delta)
+    return pd.Series(w, index=returns_window.columns)
