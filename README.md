@@ -14,7 +14,7 @@ Cleaning up the covariance estimate with Ledoit and Wolf shrinkage barely made a
 
 The methods that go after expected returns directly, resampling and Black-Litterman, did better. All of them beat naive optimization on Sharpe ratio, in every single setup tested.
 
-So, case closed? Not quite. With about 14 years of monthly data to judge them on, only resampling's edge over naive optimization stood out from the noise, and even that was fragile. And Black-Litterman's win over equal weighting came mostly from its starting assumptions, which happened to lean toward US stocks during a stretch when US stocks beat almost everything else.
+With about 14 years of monthly data to judge them on, only resampling's edge over naive optimization stood out from the noise, and even that was fragile. And Black-Litterman's win over equal weighting came mostly from its starting assumptions, which happened to lean toward US stocks during a stretch when US stocks beat almost everything else.
 
 ![Growth of $1](figures/growth_of_1.png)
 
@@ -39,11 +39,11 @@ That chart is the "error maximizer" problem in a single picture. Watch the naive
 
 A difference in Sharpe ratio doesn't mean much on its own, so the project bootstraps it. That means rebuilding the return history thousands of times by stitching together random chunks of real months (5,000 times, with chunks averaging six months long), then checking how often each strategy comes out ahead. Every strategy gets the same months in each rebuild, so the fact that they tend to rise and fall together stays intact.
 
-Here's what survived. Resampling beat naive optimization by 0.18, with a 95% interval running from 0.008 to 0.348. That makes it the only strategy that clearly beat naive, and only just. Make the chunks a year long instead and the bottom of that interval lands right on zero. Black-Litterman with no views beat equal weighting by 0.13 (interval 0.028 to 0.257), and that one held up no matter how long the chunks were. Every other comparison, including Black-Litterman against naive optimization, couldn't be told apart from noise.
+Resampling beat naive optimization by 0.18, with a 95% interval running from 0.008 to 0.348. That makes it the only strategy that clearly beat naive, and only just. Make the chunks a year long instead and the bottom of that interval lands right on zero. Black-Litterman with no views beat equal weighting by 0.13 (interval 0.028 to 0.257), and that one held up no matter how long the chunks were. Every other comparison, including Black-Litterman against naive optimization, couldn't be told apart from noise.
 
-Here's a fun wrinkle. Black-Litterman actually had a bigger lead over naive optimization than resampling did, yet its interval was much wider. Why? Resampling starts from the same estimates as naive optimization, so the two portfolios move together and their difference is easy to measure. Black-Litterman holds completely different portfolios, so its difference from naive is much noisier. Comparing similar strategies gives you sharp answers. Comparing very different ones needs a lot more than 14 years of data.
+Black-Litterman actually had a bigger lead over naive optimization than resampling did, yet its interval was much wider. Why? Resampling starts from the same estimates as naive optimization, so the two portfolios move together and their difference is easy to measure. Black-Litterman holds completely different portfolios, so its difference from naive is much noisier. Comparing similar strategies gives you sharp answers. Comparing very different ones needs a lot more than 14 years of data.
 
-One more thing to keep in mind: around ten comparisons were made here, so one borderline "win" could easily be a fluke.
+Around ten comparisons were made here, so one borderline "win" could easily be a fluke.
 
 ## How much does it depend on the settings?
 
